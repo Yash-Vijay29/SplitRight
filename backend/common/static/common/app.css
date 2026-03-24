@@ -1,0 +1,251 @@
+:root {
+    --ink: #181a1f;
+    --ink-soft: #3b4353;
+    --paper: #f3f6ef;
+    --card: #fffdf7;
+    --line: #d8dfcf;
+    --accent: #e1512a;
+    --accent-deep: #8e3118;
+    --ok: #1c7c54;
+    --warn: #b74d00;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: "Space Grotesk", sans-serif;
+    color: var(--ink);
+    background: linear-gradient(145deg, #f0f4ea 0%, #e6eef0 45%, #eae3d2 100%);
+    min-height: 100vh;
+}
+
+.page-bg {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background-image: radial-gradient(circle at 15% 20%, rgba(225, 81, 42, 0.12), transparent 30%),
+        radial-gradient(circle at 75% 12%, rgba(28, 124, 84, 0.12), transparent 35%),
+        radial-gradient(circle at 84% 78%, rgba(59, 67, 83, 0.1), transparent 28%);
+}
+
+.shell {
+    position: relative;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 24px 18px 48px;
+}
+
+.hero {
+    margin-bottom: 18px;
+}
+
+.eyebrow {
+    letter-spacing: 0.16em;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    color: var(--accent-deep);
+    margin: 0;
+}
+
+h1 {
+    margin: 8px 0;
+    font-size: clamp(1.7rem, 2vw + 1rem, 2.5rem);
+}
+
+.hero-subtitle {
+    margin: 0;
+    color: var(--ink-soft);
+}
+
+.alert {
+    border: 1px solid transparent;
+    border-radius: 12px;
+    padding: 10px 12px;
+    margin-bottom: 14px;
+    animation: fadeIn 0.25s ease;
+}
+
+.alert.ok {
+    background: #edf9f1;
+    border-color: #b8e0c8;
+    color: var(--ok);
+}
+
+.alert.error {
+    background: #fff1eb;
+    border-color: #f0c0af;
+    color: var(--accent-deep);
+}
+
+.panel {
+    background: color-mix(in srgb, var(--card) 92%, #ffffff 8%);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 14px;
+    box-shadow: 0 6px 20px rgba(23, 28, 20, 0.08);
+}
+
+.two-col {
+    display: grid;
+    gap: 18px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.three-col {
+    display: grid;
+    gap: 18px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.stack {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.grid-4 {
+    display: grid;
+    gap: 10px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.grid-2 {
+    display: grid;
+    gap: 10px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+h2 {
+    margin: 0 0 10px;
+    font-size: 1.15rem;
+}
+
+h3 {
+    margin: 0;
+    font-size: 1rem;
+    color: var(--ink-soft);
+}
+
+label {
+    font-size: 0.92rem;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+input,
+select,
+textarea,
+button {
+    font: inherit;
+}
+
+input,
+select,
+textarea {
+    background: #ffffff;
+    border: 1px solid #ccd5c0;
+    border-radius: 10px;
+    padding: 9px 10px;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+    outline: 2px solid rgba(225, 81, 42, 0.28);
+    border-color: var(--accent);
+}
+
+button {
+    border: 0;
+    border-radius: 10px;
+    padding: 10px 12px;
+    background: linear-gradient(160deg, var(--accent), var(--accent-deep));
+    color: #fff;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 5px 14px rgba(142, 49, 24, 0.28);
+}
+
+button.ghost {
+    background: #fff;
+    color: var(--ink-soft);
+    border: 1px solid var(--line);
+    margin-right: 8px;
+    margin-bottom: 8px;
+}
+
+button.ghost:hover {
+    box-shadow: 0 4px 12px rgba(24, 26, 31, 0.12);
+}
+
+.code-box {
+    margin: 10px 0 0;
+    padding: 10px;
+    border: 1px solid #d7ddcf;
+    border-radius: 10px;
+    background: #fbfcf8;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.81rem;
+    min-height: 60px;
+    max-height: 280px;
+    overflow: auto;
+    white-space: pre-wrap;
+}
+
+.chip-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.chip {
+    font-size: 0.8rem;
+    border-radius: 99px;
+    border: 1px solid #cfd5c3;
+    background: #fbfcf8;
+    padding: 3px 10px;
+}
+
+.hidden {
+    display: none;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-2px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (max-width: 1000px) {
+    .two-col,
+    .three-col,
+    .grid-4 {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 640px) {
+    .shell {
+        padding: 16px 12px 32px;
+    }
+
+    .panel {
+        padding: 12px;
+    }
+}

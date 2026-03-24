@@ -1,0 +1,235 @@
+Great, I used both your Mermaid ER copy and the JPG ER picture as reference and built this into an execution blueprint that AI agents can implement in chunks, with human validation after every chunk.
+
+## SplitRight Build Plan (AI-Agent Execution + Human QA Gates)
+
+### Assumptions locked from your ER design
+1. Core entities: User, Group, GroupMember, Expense, ExpenseSplit, Settlement.
+2. A Group has many Expenses.
+3. Expense has one payer (User) and many splits (ExpenseSplit).
+4. Group membership is many-to-many via GroupMember.
+5. Settlement is between two users, scoped to a group.
+6. Split correctness rule: sum of expense split shares must equal expense amount.
+
+## Django architecture to implement
+1. Project modules:
+- accounts
+- groups
+- expenses
+- settlements
+- balances (read-only computations)
+- common (shared validators, permissions, error format)
+
+2. Recommended stack:
+- Django
+- Django REST Framework
+- MySQL
+- JWT auth (or session auth if your instructor prefers)
+- Django migrations as source of truth for schema
+
+3. Model definitions (target)
+- User: user_id, name, email, password_hash, created_at
+- Group: group_id, group_name, created_by, created_at
+- GroupMember: user_id, group_id, joined_at, unique(user_id, group_id)
+- Expense: expense_id, group_id, paid_by, amount, expense_date, description, created_at
+- ExpenseSplit: expense_id, user_id, share_amount, unique(expense_id, user_id)
+- Settlement: settlement_id, from_user, to_user, group_id, amount, settlement_date, created_at
+
+4. Required constraints
+- email unique
+- all amount fields > 0
+- share_amount >= 0
+- payer must belong to group
+- all split users must belong to group
+- from_user != to_user for settlements
+
+## API surface (final target)
+1. Auth and users
+- POST /api/auth/signup
+- POST /api/auth/login
+- GET /api/users/me
+
+2. Groups and membership
+- POST /api/groups
+- GET /api/groups
+- GET /api/groups/{group_id}
+- POST /api/groups/{group_id}/join
+- GET /api/groups/{group_id}/members
+
+3. Expenses
+- POST /api/groups/{group_id}/expenses
+- GET /api/groups/{group_id}/expenses
+- GET /api/groups/{group_id}/expenses/{expense_id}
+
+4. Settlements
+- POST /api/groups/{group_id}/settlements
+- GET /api/groups/{group_id}/settlements
+
+5. Balances
+- GET /api/groups/{group_id}/balances
+- GET /api/groups/{group_id}/balances/pairwise
+- GET /api/users/me/balances
+
+---
+
+## Part-by-part execution plan for AI agents
+
+### Part 1: Foundation and schema
+AI agent work:
+1. Initialize Django project and apps.
+2. Configure MySQL settings and environment variables.
+3. Implement all models with constraints and migrations.
+4. Add admin registration and basic seed command.
+
+Human testing gate:
+1. Run migrations on clean DB.
+2. Verify all tables and foreign keys exist.
+3. Try invalid inserts (duplicate email, bad foreign key, negative amount) and confirm rejection.
+
+Exit criteria:
+1. Schema is stable and enforced at DB + ORM level.
+
+---
+
+### Part 2: Auth and user APIs
+AI agent work:
+1. Signup/login endpoints.
+2. Password hashing and token/session generation.
+3. Current user endpoint.
+
+Human testing gate:
+1. Signup with valid data succeeds.
+2. Duplicate email fails with clear error.
+3. Login success/failure behaves correctly.
+4. Protected endpoint blocks unauthenticated access.
+
+Exit criteria:
+1. Authentication and identity flow is production-correct for project scope.
+
+---
+
+### Part 3: Group and membership APIs
+AI agent work:
+1. Create group endpoint.
+2. Join group endpoint with duplicate prevention.
+3. List user groups and group members.
+4. Access checks for non-members.
+
+Human testing gate:
+1. User can create and join groups.
+2. Duplicate join is blocked.
+3. Non-member cannot access member-only group details.
+
+Exit criteria:
+1. User/group role requirements are complete.
+
+---
+
+### Part 4: Expense creation with split validation
+AI agent work:
+1. Add expense endpoint supporting equal and unequal split payloads.
+2. Save Expense + ExpenseSplit inside one atomic transaction.
+3. Reject if split sum mismatch.
+4. List expenses endpoint with split details.
+
+Human testing gate:
+1. Equal split case stores correctly.
+2. Unequal split case stores correctly.
+3. Split sum mismatch causes full rollback.
+4. Payer not in group is rejected.
+
+Exit criteria:
+1. Core expense flow is correct and atomic.
+
+---
+
+### Part 5: Settlement recording
+AI agent work:
+1. Settlement create endpoint.
+2. Settlement list endpoint.
+3. Validation for group membership and positive amount.
+
+Human testing gate:
+1. Valid settlement persists.
+2. Self-payment and invalid users fail.
+3. Settlement history matches inserted records.
+
+Exit criteria:
+1. Settlement flow is safe and consistent.
+
+---
+
+### Part 6: Balance engine
+AI agent work:
+1. Implement service/query logic for:
+- total paid per user
+- total owed per user
+- net per user
+- pairwise owes
+2. Build balances endpoints.
+3. Ensure settlements are included in net computation.
+
+Human testing gate:
+1. Run fixed scenario with known expected answers.
+2. Verify endpoint outputs match manual math.
+3. Test after settlement and confirm updates.
+
+Exit criteria:
+1. Who-owes-whom results are mathematically correct.
+
+---
+
+### Part 7: Frontend integration pass
+AI agent work:
+1. Connect screens to APIs in this order:
+- signup/login
+- group list/create/join
+- add expense
+- view expenses
+- balances
+- settlements
+2. Standardize API error display.
+
+Human testing gate:
+1. Full user journey works from UI without manual DB edits.
+2. Edge-case errors are visible and understandable.
+
+Exit criteria:
+1. End-to-end MVP workflow is demo-ready.
+
+---
+
+### Part 8: Hardening and submission pack
+AI agent work:
+1. Add unit and API tests for critical paths.
+2. Add seed/demo dataset command.
+3. Add README with setup, run, test, and demo steps.
+4. Add SQL query appendix for course evaluation.
+
+Human testing gate:
+1. Fresh clone setup works.
+2. Tests pass.
+3. Demo script reproducible.
+
+Exit criteria:
+1. Final submission package is complete and review-friendly.
+
+---
+
+## Agent assignment map (recommended)
+1. Agent A: Schema and migrations (Parts 1, 8 SQL appendix).
+2. Agent B: Auth + groups (Parts 2, 3).
+3. Agent C: Expenses + settlements (Parts 4, 5).
+4. Agent D: Balance engine and verification scenarios (Part 6).
+5. Agent E: Frontend wiring and UX validation (Part 7).
+6. Human lead: Runs test gates after each part and approves merge.
+
+## Human test protocol at end of each part
+1. Smoke test only that part’s APIs/UI.
+2. Run regression checklist for previous approved parts.
+3. Log pass/fail with exact failing scenario.
+4. Only merge when gate passes.
+
+If you want, next I can generate:
+1. Exact Django model classes with field types and Meta constraints.
+2. Exact DRF serializers and request/response schemas for each endpoint.
+3. A ready-to-use test case matrix with sample payloads and expected outputs.

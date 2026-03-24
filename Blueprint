@@ -1,0 +1,278 @@
+Optimizing tool selection...**SplitRight Implementation Blueprint (Phased)**
+
+This is a practical phase-by-phase plan to get your Django + MySQL expense splitter working, aligned with your ER design and the 6 role split.
+
+## **Phase 0: Project Foundation**
+Goal: Create a stable base so all roles can work in parallel.
+
+1. Decide architecture and conventions
+1. Backend: Django + Django REST Framework + MySQL
+1. Frontend: any simple UI stack (Django templates or React)
+1. API style: REST JSON
+1. Naming conventions for tables, APIs, and response formats
+
+2. Initialize repositories and environments
+1. Backend project, frontend project, shared API contract doc
+1. Dev database and seed strategy
+1. Branching strategy by role and feature
+
+3. Define MVP scope
+1. Signup/login
+1. Create/join groups
+1. Add equal/unequal expenses
+1. View balances
+1. Record settlements
+
+Deliverables:
+1. Running skeleton backend and frontend
+1. Shared API spec draft
+1. Team task board mapped to phases
+
+---
+
+## **Phase 1: Database Schema and Constraints (Role 5)**
+Goal: Lock correctness at data layer first.
+
+1. Implement schema from ER diagram
+1. USER
+1. GROUPS
+1. GROUP_MEMBER
+1. EXPENSE
+1. EXPENSE_SPLIT
+1. SETTLEMENT
+
+2. Add critical constraints
+1. USER.email unique, not null
+1. GROUP_MEMBER composite uniqueness on user_id + group_id
+1. EXPENSE amount > 0
+1. EXPENSE_SPLIT share_amount >= 0
+1. SETTLEMENT amount > 0
+1. FK cascade/restrict behavior explicitly defined
+
+3. Add indexes for query performance
+1. group_id on expense, group_member, settlement
+1. user_id on group_member, expense_split
+1. paid_by, from_user, to_user where needed
+
+4. Create core SQL views/queries
+1. Group expense list
+1. User total paid vs owed
+1. Net balance per user in group
+1. Pairwise owes matrix
+
+Deliverables:
+1. SQL DDL scripts
+1. Seed script with sample users/groups/expenses
+1. Query pack for demo/report
+
+---
+
+## **Phase 2: Backend User and Group APIs (Role 3)**
+Goal: Complete identity + group workflows.
+
+1. Build Django apps and models
+1. accounts, groups, expenses, settlements (or equivalent split)
+1. Map models to the approved schema
+
+2. Implement APIs
+1. Auth: signup, login
+1. User profile fetch
+1. Group create
+1. Group join
+1. List groups for user
+1. Group members list
+
+3. Access control checks
+1. Only members can view group data
+1. Only valid users can join groups
+1. Prevent duplicate membership
+
+Deliverables:
+1. Working user/group endpoints
+1. Postman collection or API test suite
+1. Basic backend validations and error responses
+
+---
+
+## **Phase 3: Frontend User and Group Management (Role 1)**
+Goal: Make role 1 fully functional against real APIs.
+
+1. Build screens
+1. Signup/login
+1. Group list
+1. Create group
+1. Join group
+
+2. Implement frontend validations
+1. Required fields
+1. Email format
+1. Friendly error messages from backend
+
+3. Connect to APIs
+1. Auth token/session handling
+1. Fetch and render user groups
+1. Success/failure UI states
+
+Deliverables:
+1. End-to-end user/group flow working
+1. Demo-ready screens for role 1
+
+---
+
+## **Phase 4: Backend Expense and Settlement Logic (Role 4)**
+Goal: Core business logic with strict correctness.
+
+1. Expense APIs
+1. Add expense (group_id, paid_by, amount, date, description)
+1. Add split details (equal/unequal accepted payload)
+1. List group expenses
+
+2. Settlement APIs
+1. Record settlement between two users in a group
+1. Settlement history for group/user
+
+3. Balance calculation service
+1. Compute each user paid total
+1. Compute each user owed total
+1. Net balance = paid - owed +/- settlements impact
+1. Pairwise simplification logic for who owes whom
+
+4. Use atomic transactions
+1. Expense insert + split inserts in one transaction
+1. Reject if split sum does not match expense amount
+1. Rollback on any failure
+
+Deliverables:
+1. Reliable expense/settlement endpoints
+1. Deterministic balance output for any test dataset
+
+---
+
+## **Phase 5: Frontend Expense and Balance Views (Role 2)**
+Goal: Complete user-visible core value.
+
+1. Build screens
+1. Add expense form
+1. Equal split and unequal split entry
+1. Group expense history
+1. Group balance summary (who owes whom)
+
+2. Client logic
+1. Equal split auto-calculation
+1. Unequal split validation before submit
+1. Error handling for backend validation failures
+
+3. UX for clarity
+1. Per-user net status (owes / gets back)
+1. Pairwise dues list
+1. Filter by group and date if possible
+
+Deliverables:
+1. Expense and balance flows fully integrated
+1. Clear, understandable balance visualizations
+
+---
+
+## **Phase 6: Consistency and Automation (Role 6)**
+Goal: Prevent data corruption and enforce invariants.
+
+1. Strengthen consistency rules
+1. Transaction wrappers in backend service layer
+1. Validate split totals exactly match expense
+1. Ensure paid_by belongs to group
+1. Ensure split users belong to group
+
+2. Optional DB automation
+1. Trigger or procedure for extra guardrails
+1. Audit timestamps if required by course
+
+3. Failure handling
+1. Standard error model
+1. Retry-safe idempotency where useful
+
+Deliverables:
+1. No partial writes in critical flows
+1. Defensive checks at API and DB layers
+
+---
+
+## **Phase 7: Integration, Testing, and Quality Gate**
+Goal: Prove correctness, not just functionality.
+
+1. Backend tests
+1. Model constraints
+1. API auth and permission checks
+1. Expense split validation
+1. Balance correctness cases
+
+2. Frontend tests
+1. Form validation
+1. API integration states
+1. Balance rendering correctness
+
+3. End-to-end scenarios
+1. Trip group with 3-5 users
+1. Multiple equal and unequal expenses
+1. Partial settlements
+1. Final balances verify manually and via query
+
+4. Performance sanity
+1. Small dataset response checks
+1. Query plan check for heavy balance endpoints
+
+Deliverables:
+1. Test report
+1. Bug fix round
+1. MVP release candidate
+
+---
+
+## **Phase 8: Demo, Documentation, and Submission**
+Goal: Make it easy to evaluate and present.
+
+1. Documentation
+1. ER diagram and schema explanation
+1. API docs with sample payloads
+1. Setup and run instructions
+1. Known limitations and assumptions
+
+2. Demo script
+1. Create users and group
+1. Add expenses (equal + unequal)
+1. Show balances
+1. Record settlement
+1. Show updated balances
+
+3. Final package
+1. SQL scripts
+1. Backend and frontend source
+1. Test evidence
+1. Presentation slides
+
+Deliverables:
+1. Submission-ready project with reproducible demo
+
+---
+
+## **Parallel Work Strategy (Important)**
+To avoid blocking and conflicts:
+
+1. Run Phase 1 and Phase 2 in parallel after schema draft is frozen
+1. Run Phase 3 once auth/group endpoints are stable
+1. Run Phase 4 and Phase 5 in parallel using fixed API contracts
+1. Start Phase 6 checks as soon as first expense flow exists
+1. Keep Phase 7 continuous, not only at the end
+
+---
+
+## **MVP Acceptance Checklist**
+1. User can signup/login
+1. User can create/join group and view group list
+1. Group member can add expense with equal/unequal split
+1. Expense and split persist correctly in MySQL
+1. App shows accurate who-owes-whom balances
+1. Settlement updates balances correctly
+1. Invalid operations are rejected safely
+1. No partial writes on failed expense/settlement operations
+
+If you want, I can generate the next blueprint layer: exact Django app structure, model definitions, and endpoint list per phase so your team can start coding immediately.
