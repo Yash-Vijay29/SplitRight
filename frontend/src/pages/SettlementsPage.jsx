@@ -150,9 +150,12 @@ export default function SettlementsPage() {
               From User
               <SearchSelect
                 loadOptions={loadOptions}
+                defaultOptions={options}
+                cacheOptions={false}
                 value={fromUser}
                 onChange={setFromUser}
                 placeholder="Search member"
+                noOptionsMessage={() => 'No members in this group'}
                 isOptionDisabled={(option) => Boolean(option.isDisabled)}
               />
             </label>
@@ -161,9 +164,12 @@ export default function SettlementsPage() {
               To User
               <SearchSelect
                 loadOptions={loadOptions}
+                defaultOptions={options}
+                cacheOptions={false}
                 value={toUser}
                 onChange={setToUser}
                 placeholder="Search member"
+                noOptionsMessage={() => 'No members in this group'}
                 isOptionDisabled={(option) => Boolean(option.isDisabled)}
               />
             </label>

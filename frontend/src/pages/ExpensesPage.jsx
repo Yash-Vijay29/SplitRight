@@ -237,6 +237,8 @@ export default function ExpensesPage() {
               Payer
               <SearchSelect
                 loadOptions={loadMemberOptions}
+                defaultOptions={memberOptions}
+                cacheOptions={false}
                 value={payer}
                 onChange={setPayer}
                 placeholder="Select who paid"
@@ -250,6 +252,8 @@ export default function ExpensesPage() {
               <SearchSelect
                 isMulti
                 loadOptions={loadMemberOptions}
+                defaultOptions={memberOptions}
+                cacheOptions={false}
                 value={splitUsers}
                 onChange={handleSplitUsers}
                 placeholder="Choose people to split with"
