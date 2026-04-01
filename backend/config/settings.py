@@ -14,6 +14,7 @@ import os
 from pathlib import Path
 from datetime import timedelta
 
+from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -84,29 +85,33 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DB_ENGINE = os.getenv("DB_ENGINE", "sqlite").lower()
+def get_required_env(name: str) -> str:
+    value = os.getenv(name)
+    if not value:
+        raise ImproperlyConfigured(f"Missing required database setting: {name}")
+    return value
 
-if DB_ENGINE == "mysql":
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.mysql',
-            'NAME': os.getenv('DB_NAME', 'splitright_db'),
-            'USER': os.getenv('DB_USER', 'root'),
-            'PASSWORD': os.getenv('DB_PASSWORD', ''),
-            'HOST': os.getenv('DB_HOST', '127.0.0.1'),
-            'PORT': os.getenv('DB_PORT', '3306'),
-            'OPTIONS': {
-                'charset': 'utf8mb4',
-            },
-        }
+
+DB_ENGINE = os.getenv("DB_ENGINE", "mysql").lower()
+if DB_ENGINE != "mysql":
+    raise ImproperlyConfigured(
+        "SplitRight supports only MySQL/MariaDB. Set DB_ENGINE=mysql."
+    )
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': get_required_env('DB_NAME'),
+        'USER': get_required_env('DB_USER'),
+        'PASSWORD': os.getenv('DB_PASSWORD', ''),
+        'HOST': get_required_env('DB_HOST'),
+        'PORT': get_required_env('DB_PORT'),
+        'CONN_MAX_AGE': int(os.getenv('DB_CONN_MAX_AGE', '60')),
+        'OPTIONS': {
+            'charset': 'utf8mb4',
+        },
     }
-else:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-        }
-    }
+}
 
 
 # Password validation

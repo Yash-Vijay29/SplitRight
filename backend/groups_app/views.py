@@ -57,6 +57,12 @@ class GroupJoinView(APIView):
 	def post(self, request, group_id):
 		group = get_object_or_404(Group, pk=group_id)
 
+		if not group.is_joinable:
+			return Response(
+				{"message": "This group is not accepting new members."},
+				status=status.HTTP_403_FORBIDDEN,
+			)
+
 		if GroupMember.objects.filter(group=group, user=request.user).exists():
 			return Response(
 				{"message": "You are already a member of this group."},
@@ -70,6 +76,40 @@ class GroupJoinView(APIView):
 				"group": GroupSerializer(group).data,
 			},
 			status=status.HTTP_201_CREATED,
+		)
+
+
+class GroupDiscoverView(APIView):
+	def get(self, request):
+		query = request.query_params.get("q", "").strip()
+
+		try:
+			limit = int(request.query_params.get("limit", 20))
+		except (TypeError, ValueError):
+			limit = 20
+
+		limit = max(1, min(limit, 100))
+
+		groups = (
+			Group.objects.filter(is_joinable=True)
+			.exclude(memberships__user=request.user)
+			.select_related("created_by")
+			.order_by("group_name")
+			.distinct()
+		)
+
+		if query:
+			groups = groups.filter(group_name__icontains=query)
+
+		groups = list(groups[:limit])
+		serializer = GroupSerializer(groups, many=True)
+
+		return Response(
+			{
+				"count": len(serializer.data),
+				"results": serializer.data,
+			},
+			status=status.HTTP_200_OK,
 		)
 
 

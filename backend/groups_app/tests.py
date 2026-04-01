@@ -27,6 +27,12 @@ class GroupApiTests(APITestCase):
 
 		self.group = Group.objects.create(group_name="Trip", created_by=self.owner)
 		GroupMember.objects.create(group=self.group, user=self.owner)
+		self.private_group = Group.objects.create(
+			group_name="Private Planning",
+			created_by=self.owner,
+			is_joinable=False,
+		)
+		GroupMember.objects.create(group=self.private_group, user=self.owner)
 
 	def test_create_group_auto_adds_creator_as_member(self):
 		self.client.force_authenticate(user=self.member)
@@ -48,7 +54,7 @@ class GroupApiTests(APITestCase):
 
 		self.assertEqual(response.status_code, status.HTTP_200_OK)
 		returned_ids = {group["group_id"] for group in response.data["results"]}
-		self.assertEqual(returned_ids, {self.group.group_id})
+		self.assertEqual(returned_ids, {self.group.group_id, self.private_group.group_id})
 
 	def test_join_group_success(self):
 		self.client.force_authenticate(user=self.member)
@@ -67,6 +73,17 @@ class GroupApiTests(APITestCase):
 		response = self.client.post(f"/api/groups/{self.group.group_id}/join", {}, format="json")
 
 		self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+	def test_join_group_non_joinable_group_is_blocked(self):
+		self.client.force_authenticate(user=self.member)
+
+		response = self.client.post(
+			f"/api/groups/{self.private_group.group_id}/join",
+			{},
+			format="json",
+		)
+
+		self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
 	def test_group_detail_blocks_non_member(self):
 		self.client.force_authenticate(user=self.stranger)
@@ -100,6 +117,39 @@ class GroupApiTests(APITestCase):
 		self.assertEqual(response.data["count"], 2)
 		returned_user_ids = {entry["user"]["user_id"] for entry in response.data["results"]}
 		self.assertEqual(returned_user_ids, {self.owner.user_id, self.member.user_id})
+
+	def test_discover_groups_excludes_non_joinable_and_existing_memberships(self):
+		public_group = Group.objects.create(
+			group_name="Public Hike",
+			created_by=self.owner,
+			is_joinable=True,
+		)
+		GroupMember.objects.create(group=public_group, user=self.owner)
+
+		self.client.force_authenticate(user=self.member)
+		response = self.client.get("/api/groups/discover")
+
+		self.assertEqual(response.status_code, status.HTTP_200_OK)
+		returned_ids = {group["group_id"] for group in response.data["results"]}
+		self.assertIn(self.group.group_id, returned_ids)
+		self.assertIn(public_group.group_id, returned_ids)
+		self.assertNotIn(self.private_group.group_id, returned_ids)
+
+	def test_discover_groups_supports_query_filter(self):
+		target_group = Group.objects.create(
+			group_name="Weekend Riders",
+			created_by=self.owner,
+			is_joinable=True,
+		)
+		GroupMember.objects.create(group=target_group, user=self.owner)
+
+		self.client.force_authenticate(user=self.member)
+		response = self.client.get("/api/groups/discover", {"q": "riders"})
+
+		self.assertEqual(response.status_code, status.HTTP_200_OK)
+		returned_names = {group["group_name"] for group in response.data["results"]}
+		self.assertIn("Weekend Riders", returned_names)
+		self.assertNotIn("Trip", returned_names)
 
 	def test_group_member_unique_constraint_enforced(self):
 		with self.assertRaises(IntegrityError):

@@ -5,6 +5,7 @@ from django.db import models
 class Group(models.Model):
 	group_id = models.BigAutoField(primary_key=True)
 	group_name = models.CharField(max_length=150)
+	is_joinable = models.BooleanField(default=True)
 	created_by = models.ForeignKey(
 		settings.AUTH_USER_MODEL,
 		on_delete=models.PROTECT,

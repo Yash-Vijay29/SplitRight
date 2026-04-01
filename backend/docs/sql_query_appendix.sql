@@ -1,5 +1,5 @@
 -- SplitRight SQL Query Appendix (Part 8)
--- Replace :group_id and :user_id with actual values before execution.
+-- For MariaDB/MySQL usage, replace :group_id and :user_id with concrete values before execution.
 
 -- 1) Group expense list with payer details
 SELECT

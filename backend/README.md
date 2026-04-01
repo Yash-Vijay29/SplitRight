@@ -26,7 +26,7 @@ Parts 1 to 8 are implemented for backend scope:
 - Django 5.2
 - Django REST Framework
 - JWT auth (`djangorestframework-simplejwt`)
-- MySQL or SQLite (configurable by env)
+- MySQL/MariaDB (env-configured)
 
 ## Environment Setup
 
@@ -55,6 +55,8 @@ pip install -r requirements.txt
 cp .env.example .env
 ```
 
+Update DB fields in `.env` for your MariaDB host, port, user, and password.
+
 6. Run migrations:
 
 ```bash
@@ -69,8 +71,26 @@ python manage.py createsuperuser
 
 ## Database Mode
 
-- SQLite default: no extra setup needed.
-- MySQL: set `DB_ENGINE=mysql` and DB credentials in `.env`, then run migrations.
+SplitRight backend is MySQL/MariaDB only.
+
+On Fedora with MariaDB, run:
+
+```bash
+sudo dnf install -y mariadb mariadb-server
+sudo systemctl enable --now mariadb
+sudo mysql_secure_installation
+```
+
+Then create DB and app user (adjust names/passwords):
+
+```sql
+CREATE DATABASE splitright_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'splitright_user'@'%' IDENTIFIED BY 'change_me';
+GRANT ALL PRIVILEGES ON splitright_db.* TO 'splitright_user'@'%';
+FLUSH PRIVILEGES;
+```
+
+Set `.env` values to match your MariaDB endpoint (`DB_HOST`/`DB_PORT`) and credentials, then run migrations.
 
 ## Run Backend
 

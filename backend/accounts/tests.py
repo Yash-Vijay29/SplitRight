@@ -10,6 +10,7 @@ class AuthApiTests(APITestCase):
 		self.signup_url = reverse("signup")
 		self.login_url = reverse("login")
 		self.me_url = reverse("me")
+		self.user_search_url = reverse("users-search")
 
 	def test_signup_success(self):
 		payload = {
@@ -96,3 +97,45 @@ class AuthApiTests(APITestCase):
 		self.assertEqual(response.status_code, status.HTTP_200_OK)
 		self.assertEqual(response.data["user_id"], user.user_id)
 		self.assertEqual(response.data["email"], user.email)
+
+	def test_user_search_requires_authentication(self):
+		response = self.client.get(self.user_search_url, {"q": "ya"})
+		self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+	def test_user_search_returns_filtered_results(self):
+		User.objects.create_user(
+			name="Alice Adams",
+			email="alice@example.com",
+			password="StrongPass123",
+		)
+		User.objects.create_user(
+			name="Bob Brown",
+			email="bob@example.com",
+			password="StrongPass123",
+		)
+		searching_user = User.objects.create_user(
+			name="Searcher",
+			email="searcher@example.com",
+			password="StrongPass123",
+		)
+		self.client.force_authenticate(user=searching_user)
+
+		response = self.client.get(self.user_search_url, {"q": "ali"})
+
+		self.assertEqual(response.status_code, status.HTTP_200_OK)
+		self.assertEqual(response.data["count"], 1)
+		self.assertEqual(response.data["results"][0]["name"], "Alice Adams")
+
+	def test_user_search_returns_empty_results_for_short_query(self):
+		searching_user = User.objects.create_user(
+			name="Searcher",
+			email="searcher@example.com",
+			password="StrongPass123",
+		)
+		self.client.force_authenticate(user=searching_user)
+
+		response = self.client.get(self.user_search_url, {"q": "a"})
+
+		self.assertEqual(response.status_code, status.HTTP_200_OK)
+		self.assertEqual(response.data["count"], 0)
+		self.assertEqual(response.data["results"], [])

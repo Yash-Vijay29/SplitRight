@@ -10,6 +10,12 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ["user_id", "name", "email", "created_at"]
 
 
+class UserLookupSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ["user_id", "name", "email"]
+
+
 class SignupSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, min_length=8)
 

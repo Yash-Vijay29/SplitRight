@@ -11,11 +11,12 @@ class GroupSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Group
-        fields = ["group_id", "group_name", "created_by", "created_at"]
+        fields = ["group_id", "group_name", "is_joinable", "created_by", "created_at"]
 
 
 class GroupCreateSerializer(serializers.Serializer):
     group_name = serializers.CharField(max_length=150)
+    is_joinable = serializers.BooleanField(required=False, default=True)
 
     def validate_group_name(self, value):
         group_name = value.strip()
@@ -29,6 +30,7 @@ class GroupCreateSerializer(serializers.Serializer):
         with transaction.atomic():
             group = Group.objects.create(
                 group_name=validated_data["group_name"],
+                is_joinable=validated_data.get("is_joinable", True),
                 created_by=request.user,
             )
             GroupMember.objects.create(group=group, user=request.user)
