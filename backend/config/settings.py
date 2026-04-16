@@ -171,3 +171,9 @@ SIMPLE_JWT = {
     'USER_ID_FIELD': 'user_id',
     'USER_ID_CLAIM': 'user_id',
 }
+
+OPENROUTER_API_KEY = os.getenv('OPENROUTER_API_KEY', '')
+OPENROUTER_MODEL = os.getenv('OPENROUTER_MODEL', 'openai/gpt-4o-mini')
+OPENROUTER_BASE_URL = os.getenv('OPENROUTER_BASE_URL', 'https://openrouter.ai/api/v1').rstrip('/')
+BILL_UPLOAD_MAX_MB = float(os.getenv('BILL_UPLOAD_MAX_MB', '8'))
+BILL_AI_TIMEOUT_SECONDS = float(os.getenv('BILL_AI_TIMEOUT_SECONDS', '25'))

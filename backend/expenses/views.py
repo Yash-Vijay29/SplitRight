@@ -1,4 +1,5 @@
 from django.shortcuts import get_object_or_404
+from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework import status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
@@ -7,7 +8,8 @@ from rest_framework.views import APIView
 from groups_app.models import Group, GroupMember
 
 from .models import Expense
-from .serializers import ExpenseCreateSerializer, ExpenseSerializer
+from .serializers import ExpenseBillParseSerializer, ExpenseCreateSerializer, ExpenseSerializer
+from .services import BillParsingError, parse_bill_image_with_openrouter
 
 
 def _ensure_group_member(user, group):
@@ -70,3 +72,23 @@ class GroupExpenseDetailView(APIView):
 		)
 
 		return Response(ExpenseSerializer(expense).data, status=status.HTTP_200_OK)
+
+
+class GroupExpenseBillParseView(APIView):
+	parser_classes = (MultiPartParser, FormParser)
+
+	def post(self, request, group_id):
+		group = get_object_or_404(Group, pk=group_id)
+		_ensure_group_member(request.user, group)
+
+		serializer = ExpenseBillParseSerializer(data=request.data)
+		serializer.is_valid(raise_exception=True)
+
+		bill_image = serializer.validated_data["bill_image"]
+
+		try:
+			parsed_payload = parse_bill_image_with_openrouter(bill_image)
+		except BillParsingError as exc:
+			return Response({"detail": exc.message}, status=exc.status_code)
+
+		return Response(parsed_payload, status=status.HTTP_200_OK)

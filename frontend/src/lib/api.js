@@ -59,9 +59,12 @@ export async function apiRequest(path, options = {}) {
     params,
   } = options
 
-  const requestHeaders = {
-    'Content-Type': 'application/json',
-    ...headers,
+  const isFormDataBody = body instanceof FormData
+
+  const requestHeaders = { ...headers }
+
+  if (!isFormDataBody) {
+    requestHeaders['Content-Type'] = requestHeaders['Content-Type'] || 'application/json'
   }
 
   if (token) {
@@ -71,7 +74,7 @@ export async function apiRequest(path, options = {}) {
   const response = await fetch(buildUrl(path, params), {
     method,
     headers: requestHeaders,
-    body: body ? JSON.stringify(body) : undefined,
+    body: body ? (isFormDataBody ? body : JSON.stringify(body)) : undefined,
   })
 
   const payload = await response.json().catch(() => null)
@@ -93,6 +96,7 @@ export const endpoints = {
   groupMembers: (groupId) => `groups/${groupId}/members`,
   groupJoin: (groupId) => `groups/${groupId}/join`,
   groupExpenses: (groupId) => `groups/${groupId}/expenses`,
+  groupExpenseParseBill: (groupId) => `groups/${groupId}/expenses/parse-bill`,
   groupBalances: (groupId) => `groups/${groupId}/balances`,
   groupPairwiseBalances: (groupId) => `groups/${groupId}/balances/pairwise`,
   myBalances: 'users/me/balances',

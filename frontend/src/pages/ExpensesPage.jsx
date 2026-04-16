@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../context/useAuth'
 import SearchSelect from '../components/SearchSelect'
 import { apiRequest, endpoints } from '../lib/api'
@@ -9,6 +9,28 @@ function toUserOption(member) {
     value: member.user?.user_id,
     label: `${member.user?.name} (${member.user?.email})`,
     meta: member,
+  }
+}
+
+function getConfidenceSummary(confidence) {
+  const raw = Number(confidence)
+  if (!Number.isFinite(raw)) {
+    return null
+  }
+
+  const normalizedPercent = raw <= 1 ? raw * 100 : raw
+  const percent = Math.max(0, Math.min(100, Math.round(normalizedPercent)))
+
+  let tone = 'low'
+  if (percent >= 80) {
+    tone = 'high'
+  } else if (percent >= 60) {
+    tone = 'medium'
+  }
+
+  return {
+    percent,
+    tone,
   }
 }
 
@@ -29,11 +51,15 @@ export default function ExpensesPage() {
   const [payer, setPayer] = useState(null)
   const [splitUsers, setSplitUsers] = useState([])
   const [shareByUser, setShareByUser] = useState({})
+  const [billImageFile, setBillImageFile] = useState(null)
+  const [billParseResult, setBillParseResult] = useState(null)
 
   const loadGroupData = useCallback(async () => {
     if (!selectedGroupId) {
       setMembers([])
       setExpenses([])
+      setBillImageFile(null)
+      setBillParseResult(null)
       return
     }
 
@@ -167,6 +193,85 @@ export default function ExpensesPage() {
     }
   }
 
+  async function handleAnalyzeBill(event) {
+    event.preventDefault()
+
+    if (!selectedGroupId) {
+      setError('Select a current group from the top bar first.')
+      return
+    }
+
+    if (!billImageFile) {
+      setError('Choose a bill image to analyze.')
+      return
+    }
+
+    setBusy('parse')
+    setError('')
+    setMessage('')
+
+    const formData = new FormData()
+    formData.append('bill_image', billImageFile)
+
+    try {
+      const payload = await apiRequest(endpoints.groupExpenseParseBill(selectedGroupId), {
+        method: 'POST',
+        token: accessToken,
+        body: formData,
+      })
+
+      setBillParseResult(payload)
+      setMessage('Bill analyzed successfully. Review extracted data and apply it to the form.')
+    } catch (err) {
+      setBillParseResult(null)
+      setError(err.message)
+    } finally {
+      setBusy('')
+    }
+  }
+
+  function applyParsedExpenseSuggestion() {
+    const suggestion = billParseResult?.suggested_expense
+    if (!suggestion) {
+      setError('No parsed suggestion is available yet.')
+      return
+    }
+
+    setFormState((prev) => ({
+      ...prev,
+      amount: suggestion.amount || prev.amount,
+      expenseDate: suggestion.expense_date || prev.expenseDate,
+      description: suggestion.description || prev.description,
+    }))
+
+    const parsedPartySize = Number(billParseResult?.party_size ?? suggestion.party_size)
+    if (Number.isInteger(parsedPartySize) && parsedPartySize > 0 && memberOptions.length > 0) {
+      const maxSize = Math.min(parsedPartySize, memberOptions.length)
+      const autoSelected = memberOptions.slice(0, maxSize)
+
+      setSplitUsers(autoSelected)
+      setShareByUser((prev) => {
+        const next = {}
+        for (const option of autoSelected) {
+          next[option.value] = prev[option.value] || ''
+        }
+        return next
+      })
+
+      setMessage(
+        `Parsed suggestion applied. Auto-selected ${autoSelected.length} split member(s) from detected party size. You can edit this before creating the expense.`,
+      )
+      return
+    }
+
+    setMessage('Parsed suggestion has been applied to the expense form.')
+  }
+
+  const confidenceSummary = useMemo(
+    () => getConfidenceSummary(billParseResult?.confidence),
+    [billParseResult],
+  )
+
   return (
     <section className="stack-lg">
       <div className="section-header">
@@ -187,6 +292,114 @@ export default function ExpensesPage() {
         </section>
       ) : (
         <>
+          <section className="panel stack">
+            <h3>Upload Bill (AI Assist)</h3>
+            <p className="muted">
+              Upload a bill image to extract line items and total, then apply the suggested values to the expense form.
+            </p>
+            <form className="stack" onSubmit={handleAnalyzeBill}>
+              <label>
+                Bill Image
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0] || null
+                    setBillImageFile(file)
+                  }}
+                  required
+                />
+              </label>
+              <button type="submit" disabled={busy === 'parse'}>
+                {busy === 'parse' ? 'Analyzing Bill...' : 'Analyze Bill'}
+              </button>
+            </form>
+
+            {billParseResult && (
+              <div className="stack">
+                {confidenceSummary && (
+                  <div
+                    className={`confidence-indicator ${confidenceSummary.tone}`}
+                    aria-label="Parser confidence"
+                  >
+                    Parser confidence: {confidenceSummary.percent}%
+                  </div>
+                )}
+
+                <div className="form-grid four">
+                  <label>
+                    Parsed Total
+                    <input type="text" value={billParseResult.totals?.total || ''} readOnly />
+                  </label>
+                  <label>
+                    Parsed Date
+                    <input type="text" value={billParseResult.suggested_expense?.expense_date || ''} readOnly />
+                  </label>
+                  <label>
+                    Currency
+                    <input type="text" value={billParseResult.totals?.currency || ''} readOnly />
+                  </label>
+                  <label>
+                    Party Size
+                    <input type="text" value={billParseResult.party_size || ''} readOnly />
+                  </label>
+                </div>
+
+                <div className="form-grid four">
+                  <label>
+                    Subtotal
+                    <input type="text" value={billParseResult.totals?.subtotal || ''} readOnly />
+                  </label>
+                  <label>
+                    Tax
+                    <input type="text" value={billParseResult.totals?.tax || ''} readOnly />
+                  </label>
+                  <label>
+                    Tip
+                    <input type="text" value={billParseResult.totals?.tip || ''} readOnly />
+                  </label>
+                  <label>
+                    Discounts
+                    <input type="text" value={billParseResult.totals?.discounts || ''} readOnly />
+                  </label>
+                </div>
+
+                {(billParseResult.extracted_charges || []).length > 0 && (
+                  <table className="table">
+                    <thead>
+                      <tr>
+                        <th>Item</th>
+                        <th>Qty</th>
+                        <th>Unit Price</th>
+                        <th>Line Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(billParseResult.extracted_charges || []).map((charge, index) => (
+                        <tr key={`${charge.name}-${index}`}>
+                          <td>{charge.name}</td>
+                          <td>{charge.quantity}</td>
+                          <td>{formatMoney(charge.unit_price)}</td>
+                          <td>{formatMoney(charge.line_total)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+
+                {(billParseResult.warnings || []).length > 0 && (
+                  <div className="alert error">
+                    {(billParseResult.warnings || []).join(' | ')}
+                  </div>
+                )}
+
+                <button type="button" onClick={applyParsedExpenseSuggestion}>
+                  Apply Parsed Suggestion To Expense Form
+                </button>
+              </div>
+            )}
+          </section>
+
           <form className="panel stack" onSubmit={handleSubmit}>
             <h3>Add Expense</h3>
             <div className="form-grid four">

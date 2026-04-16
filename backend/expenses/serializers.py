@@ -164,3 +164,7 @@ class ExpenseCreateSerializer(serializers.Serializer):
                 )
 
         return expense
+
+
+class ExpenseBillParseSerializer(serializers.Serializer):
+    bill_image = serializers.FileField(required=True)

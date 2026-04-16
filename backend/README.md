@@ -115,6 +115,7 @@ API root is under `/api/...`.
 - `POST /api/groups/{group_id}/expenses`
 - `GET /api/groups/{group_id}/expenses`
 - `GET /api/groups/{group_id}/expenses/{expense_id}`
+- `POST /api/groups/{group_id}/expenses/parse-bill`
 
 - `POST /api/groups/{group_id}/settlements`
 - `GET /api/groups/{group_id}/settlements`

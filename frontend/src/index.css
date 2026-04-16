@@ -376,6 +376,35 @@ button:disabled {
   gap: 8px;
 }
 
+.confidence-indicator {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.confidence-indicator.high {
+  border-color: rgba(31, 122, 77, 0.35);
+  color: #1f7a4d;
+  background: #ecfaf2;
+}
+
+.confidence-indicator.medium {
+  border-color: rgba(170, 90, 43, 0.35);
+  color: #8b441f;
+  background: #fff3e8;
+}
+
+.confidence-indicator.low {
+  border-color: rgba(186, 47, 54, 0.35);
+  color: #8e252a;
+  background: #ffeceb;
+}
+
 @keyframes riseIn {
   from {
     opacity: 0;
